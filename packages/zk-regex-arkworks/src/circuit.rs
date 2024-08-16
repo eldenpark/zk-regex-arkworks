@@ -154,6 +154,8 @@ fn asterisk1_regex<F: PrimeField>(msg: Vec<FpVar<F>>) -> Result<Boolean<F>, Synt
     // Initial state
     states[0] = Boolean::constant(true);
 
+    let fake: Boolean<F> = Boolean::constant(false);
+
     print_states(&states);
 
     for i in 0..num_bytes {
@@ -188,6 +190,8 @@ fn asterisk1_regex<F: PrimeField>(msg: Vec<FpVar<F>>) -> Result<Boolean<F>, Synt
 impl<F: PrimeField> ConstraintSynthesizer<F> for Asterisk1RegexCircuit<F> {
     fn generate_constraints(self, cs: ConstraintSystemRef<F>) -> Result<(), SynthesisError> {
         println!("start \n\n");
+
+        // FpVar::new_input(cs.clone(), || Ok(*val));
 
         let msg_vars: Vec<FpVar<F>> = self
             .msg
