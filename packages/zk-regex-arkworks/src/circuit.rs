@@ -14,6 +14,12 @@ struct Asterisk1RegexCircuit<F: PrimeField> {
     pub msg: Vec<F>,
 }
 
+fn print_states<F: PrimeField>(states: &Vec<Boolean<F>>) {
+    for (idx, s) in states.iter().enumerate() {
+        println!("states, idx: {}, val: {:?}", idx, s.value());
+    }
+}
+
 fn asterisk1_regex<F: PrimeField>(msg: Vec<FpVar<F>>) -> Result<Boolean<F>, SynthesisError> {
     let num_bytes = msg.len();
     let mut states = vec![Boolean::constant(false); num_bytes + 1];
@@ -21,7 +27,11 @@ fn asterisk1_regex<F: PrimeField>(msg: Vec<FpVar<F>>) -> Result<Boolean<F>, Synt
     // Initial state
     states[0] = Boolean::constant(true);
 
+    print_states(&states);
+
     for i in 0..num_bytes {
+        println!("round: {}", i);
+
         // Wrapping the constants in FpVar before comparison
         let is_x = msg[i].is_eq(&FpVar::Constant(F::from(120u128)))?;
         let is_a = msg[i].is_eq(&FpVar::Constant(F::from(97u128)))?;
@@ -39,7 +49,11 @@ fn asterisk1_regex<F: PrimeField>(msg: Vec<FpVar<F>>) -> Result<Boolean<F>, Synt
         };
 
         states[i + 1] = Boolean::or(&states[i + 1], &next_state)?;
+
+        print_states(&states);
     }
+
+    // print_states(&states);
 
     // Check if the final state is accepted (last state must be 'b')
     let is_accepted = Boolean::and(
@@ -54,11 +68,23 @@ fn asterisk1_regex<F: PrimeField>(msg: Vec<FpVar<F>>) -> Result<Boolean<F>, Synt
 
 impl<F: PrimeField> ConstraintSynthesizer<F> for Asterisk1RegexCircuit<F> {
     fn generate_constraints(self, cs: ConstraintSystemRef<F>) -> Result<(), SynthesisError> {
-        let msg_vars: Vec<FpVar<F>> = self
-            .msg
-            .iter()
-            .map(|val| FpVar::new_input(cs.clone(), || Ok(*val)).unwrap())
-            .collect();
+        println!("self.msg: {:#?}", self.msg);
+
+        // let msg_vars: Vec<FpVar<F>> = self
+        //     .msg
+        //     .iter()
+        //     .map(|val| FpVar::new_input(cs.clone(), || Ok(*val)).unwrap())
+        //     .collect();
+
+        let mut msg_vars = vec![];
+        for val in self.msg {
+            let c = FpVar::new_input(cs.clone(), || Ok(val)).unwrap();
+            msg_vars.push(c);
+        }
+
+        println!("msg_vars len: {}", msg_vars.len());
+
+        // println!("msg_vars: {:#?}", msg_vars);
 
         let is_accepted = asterisk1_regex(msg_vars)?;
 
@@ -94,7 +120,7 @@ pub fn run() -> Result<(), SynthesisError> {
     // Prepare the public inputs (none in this case)
     let public_inputs = msg;
 
-    println!("proof: {:?}", proof);
+    // println!("proof: {:?}", proof);
 
     // Verify the proof
     let verified = verify_proof(&pvk, &proof, &public_inputs).unwrap();
